@@ -274,5 +274,4 @@ Key functions in `server.py`: `led()` and `bal()` (ledger and balance), `out_val
 ---
 
 
-`<your name>` · Internship shortlisting task, Centre for Digital Infrastructure, NIT Tiruchirappalli.
-Built with the help of AI coding tools; I have read and can explain every part of the code.
+
