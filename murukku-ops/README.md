@@ -9,7 +9,7 @@ Every transaction is entered once, at its source, and flows into stock, producti
 | Resource | Link |
 |---|---|
 | Live demo | [Open FactoryFlow](https://factory-flow-9oi6.onrender.com/) |
-| Demo video | [▶ Watch Demo Video](https://drive.google.com/file/d/1zeHqc2-9-2fYPediuJJY1_-AcWhWMkKn/view?usp=sharing) |
+| Demo video | [▶ Watch Demo Video](https://drive.google.com/file/d/1zeHqc2-9-2fYPediuJJYl_-AcWwhMkKn/view?usp=sharing) |
 
 
 ---
