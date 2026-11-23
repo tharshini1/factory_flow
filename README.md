@@ -1,119 +1,259 @@
-FactoryFlow — From Order to Audit
-FactoryFlow is a lightweight order-to-audit operations system for a small food-manufacturing business. It connects sales orders, approval, GST invoicing, dispatch, purchases, BOM-based production, stock movements, production variance, costing, receivables and audit reports through a common stock ledger.
-Implementation note: This README documents the repository implementation. The benchmark figures below are the expected values asserted by tests/test_benchmark.py; they should be described as automated benchmark results only after that test has been run successfully in the submission environment.
-
-Features
-- Sales workflow: salesman order capture, admin approval, invoice generation, dispatch checks and customer receivables.
-- Purchasing and inventory: purchase receipts and stock balances derived from ledger movements.
-- Production: BOM-based material planning, actual material entry, good/damaged output, batch records and material variance.
-- Costing: material cost plus run-level labour and power overhead, divided by good packets.
-- GST: HSN/rate per invoice line; CGST + SGST for Tamil Nadu customers and IGST for customers in another state.
-- Controls: server-side role checks, stock-shortage blocks, audit records and credit-note cancellation.
-- Offline order capture: cached app shell/product/customer data and queued orders; client_id makes retries idempotent.
-- Reports: sales, GST, stock, ledger, production, outstanding, purchases, customer-wise and product-wise reports.
-Technology stack and rationale
-Technology	Use	Why
-Python 3.9+ standard library	HTTP server, business logic, decimal arithmetic, CSV/PDF-related response handling	No third-party runtime dependencies; simple deployment and inspectable code
-SQLite	Persistent relational data store	Embedded database suitable for a small single-instance demonstration
-Vanilla JavaScript / PWA-style frontend	Browser UI and offline order queue	No frontend build chain or package installation
-Docker	Containerized deployment	Reproducible deployment; Render can build from the included Dockerfile
+<div align="center">🏭 FactoryFlow
+From Order to Audit — All in One Flow
+A connected operations platform for small food-manufacturing businesses.
 
 
-The implementation stores quantities as integer base units (g, ml or pieces) and money as integer paise. Decimal arithmetic is used when converting user-entered values to these integer representations. This avoids floating-point drift in stock and currency calculations.
-Setup
-Local
-Requirements: Python 3.9 or later.
-cd murukku-ops
+
+
+🌐 Live Demo · 💻 Source Code
+</div>📌 Table of Contents
+<details open>
+<summary><b>Navigate the README</b></summary>- ✨ Project Overview
+- 🔄 End-to-End Workflow
+- 🚀 Features
+- 🧰 Technology Stack
+- ⚙️ Installation and Setup
+- 👥 Demo Login Accounts
+- 📊 Benchmark Results
+- 🧮 Business Logic
+- 🧪 Run the Benchmark
+- 🧩 Section 6 Capability Mapping
+- ⚠️ Assumptions and Known Gaps
+- 📁 Project Structure
+</details>✨ Project Overview
+FactoryFlow brings the key activities of a food-manufacturing business into one connected application. It links customer orders, purchasing, inventory, BOM-based production, invoicing, dispatch, payments and audit reporting.
+
+Instead of treating each activity as a separate process, FactoryFlow connects them through shared business records and an inventory ledger.
+🎯 The problem it addresses
+Small manufacturing businesses may track orders, raw materials, production usage, finished goods and payments in separate records. This makes it harder to identify stock shortages, material wastage, production variance, actual product cost and outstanding payments.
+💡 The solution
+FactoryFlow provides a common workflow with stock movements, production records, invoice calculations and reports that help users follow an order from creation through dispatch and audit.
+🔄 End-to-End Workflow
+```mermaid
+flowchart TD
+    A[🛒 Customer Order] --> B[🧑‍💼 Admin Approval]
+    B --> C{Stock Available?}
+    C -- No --> D[⚠️ Backorder / Wait for Stock]
+    C -- Yes --> E[🧾 Invoice Generation]
+    D --> F[🏭 Purchase & Production]
+    F --> G[📦 Stock Ledger Updated]
+    G --> E
+    E --> H[🚚 Dispatch]
+    H --> I[💳 Payment & Receivables]
+    I --> J[📊 Reports & Audit]
+```
+<sub>Diagram shows the high-level business flow; exact actions are subject to role permissions and stock availability.</sub>
+🚀 Features
+Module	What it does
+🛒 Sales Management	Create salesman orders, review and approve orders, generate invoices and track customer receivables.
+📦 Inventory Management	Track raw materials, packaging and finished goods through stock-ledger movements.
+🧾 Purchase Management	Record purchase receipts and increase available inventory.
+🏭 Production Management	Calculate planned BOM requirements, capture actual material usage and record good/damaged output.
+📉 Variance Analysis	Compare planned and actual material consumption and production yield.
+💰 Product Costing	Combine material issue cost, labour and power cost to calculate cost per good packet.
+🇮🇳 GST Invoicing	Calculate CGST/SGST for intra-state sales and IGST for inter-state sales.
+🔐 Role-Based Access	Restrict supported actions according to the user's role.
+📴 Offline Order Capture	Cache app resources and selected data; queue order submissions for retry.
+🧾 Audit and Reports	Provide audit records and reports for sales, GST, stock, production, purchases and outstanding balances.
+
+
+📊 Reports available
+- Sales report
+- GST report
+- Stock report
+- Ledger report
+- Production report
+- Outstanding report
+- Purchase report
+- Customer-wise report
+- Product-wise report
+🧰 Technology Stack
+Technology	Where it is used	Why it was selected
+🐍 Python 3.9+	HTTP server and backend business logic	Simple, readable implementation with no third-party runtime dependencies.
+🗃️ SQLite	Relational database	Lightweight persistence suitable for a small single-instance demonstration.
+🌐 HTML, CSS and JavaScript	Browser interface	Provides a responsive browser UI without requiring a frontend build toolchain.
+🐳 Docker	Containerization	Makes the application easier to run consistently in local and hosted environments.
+📱 Service Worker / PWA approach	Offline support	Caches app resources and supports queued order submission when connectivity returns.
+
+
+Data precision
+- Inventory quantities are stored as integer base units such as grams, millilitres or pieces.
+- Currency is stored as integer paise.
+- Decimal arithmetic is used when converting entered quantities and amounts to these stored units.
+This reduces floating-point rounding errors in stock and financial calculations.
+⚙️ Installation and Setup
+Prerequisites
+- Python 3.9 or later
+- Git
+- A modern web browser
+1. Clone the repository
+git clone https://github.com/tharshini1/factory_flow.git
+cd factory_flow/murukku-ops
+2. Start the application
 python server.py
-Open http://localhost:8000.
+3. Open the application
+Visit:
+http://localhost:8000
+The application seeds demonstration data on first startup.
+🐳 Run with Docker
+cd murukku-ops
+docker compose up --build
+Then open the local URL exposed by the container.
+☁️ Deployment note
+The project includes a Dockerfile for container-based deployment. On Render, configure the service to use Docker and the platform-provided PORT environment variable.
 
-The application seeds demo data on first startup. Demo password: demo123.
+Database persistence: a hosted service's local filesystem may be ephemeral. For persistent SQLite data on Render, attach a persistent disk and configure:
+DB_PATH=/var/data/factory.db
+👥 Demo Login Accounts
+The application includes seeded demonstration accounts.
 Username	Role
-sales_a, sales_b	Salesman
+sales_a	Salesman
+sales_b	Salesman
 admin	Admin
 production	Production
-auditor	Accountant / auditor
+auditor	Accountant / Auditor
 owner	Owner
 
 
-Docker
-cd murukku-ops
-docker compose up --build
-Render
-Create a new Web Service from the repository and select Docker. Render supplies the PORT environment variable. The application seeds its demo data on first start.
+Demo password: demo123
+⚠️ These credentials are for demonstration only. Do not use them in a production deployment.
 
-Persistence warning: on Render's free tier, the local filesystem may be ephemeral. The README in the project recommends attaching a Render Disk and setting DB_PATH=/var/data/factory.db to retain the SQLite database across restarts.
-Run the benchmark
-cd murukku-ops
-python tests/test_benchmark.py
-The benchmark starts the server against a temporary SQLite database, calls the HTTP API and asserts expected end-to-end values. It does not benchmark throughput or latency; it is a functional workflow/regression benchmark.
-Feature coverage against the assignment's Section 6 tiers
-The source repository contains implementation evidence for the following capability areas. The exact Section 6 tier labels/numbering are not present in the repository README or benchmark test, so this table deliberately maps by capability rather than inventing tier numbers. Replace the first column with the assignment's exact tier names before final submission if they differ.
-Section 6 capability area	Implemented evidence
-Order-to-cash	Salesman order creation, admin approval, invoice, dispatch, payment and outstanding balance
-Purchase-to-stock	Purchase receipt creates a positive stock-ledger movement
-BOM production	Product BOM, planned quantities, actual usage, good/damaged output and production ledger postings
-Variance and alerts	Yield and material variance in basis points; flags when absolute variance exceeds 3%
-Costing	Material issue value plus labour and power overhead; cost per good packet
-GST and documents	HSN/rate invoice lines, intra/inter-state tax split, invoice numbering and credit-note cancellation
-Audit and reporting	Audit log and nine report endpoints
-Offline workflow	Service-worker app-shell caching, cached product/customer lists and idempotent queued order submission
-Role-based access	Server-side endpoint authorization for defined roles
-
-
-Stock, production and costing rules
-- Stock on hand: sum of all ledger quantities for an item. Movements are appended; prior movements are not overwritten.
-- Weighted-average valuation: current average unit cost is total ledger value divided by total ledger quantity. Issues are valued at this moving average.
-- BOM plan: BOM quantity per batch multiplied by the number of batches.
-- Actual consumption: entered actual amounts are used for materials; pouch consumption is derived from good plus damaged output.
-- Variance: (actual − planned) / planned × 100. The code flags a variance only when its absolute value is greater than 3.00%.
-- Yield variance: (good output − expected output) / expected output × 100.
-- Cost per packet: (material cost + labour + power) / good packets.
-Benchmark results recorded in the repository
-tests/test_benchmark.py asserts the following scenario values:
-Measure	Expected result
-Flour closing stock	120 kg
-Cooking oil closing stock	19.5 L
-200 g pouch closing stock	306 pcs
-Murukku finished goods after production	238 packets
-Yield variance	−6.0% (flagged)
-Cooking-oil variance	+5.0% (flagged)
-Murukku finished goods after dispatch	88 packets
-Invoice taxable value	₹7,500.00
+📊 Benchmark Results
+The repository's automated benchmark test asserts the following end-to-end scenario values.
+<div align="center">Benchmark check	Expected result
+🌾 Flour closing stock	120 kg
+🛢️ Cooking oil closing stock	19.5 L
+🛍️ 200 g pouch closing stock	306 pcs
+📦 Finished goods after production	238 packets
+📉 Production yield variance	−6.0%
+🛢️ Cooking-oil usage variance	+5.0%
+🚚 Finished goods after dispatch	88 packets
+🧾 Invoice taxable value	₹7,500.00
 CGST	₹187.50
 SGST	₹187.50
-Invoice total	₹7,875.00
-Retailer A outstanding after ₹4,000 payment	₹3,875.00
-Distributor B shortage	32 packets
-Murukku production cost per good packet	₹31.14
+💳 Invoice total	₹7,875.00
+Outstanding after ₹4,000 payment	₹3,875.00
+⚠️ Distributor B shortage	32 packets
+💰 Production cost per good packet	₹31.14
 
 
-Explaining the benchmark differences
-- The benchmark's material cost is ₹4,055; labour is ₹1,200 and power is ₹600. Total run cost is ₹5,855. Dividing by 188 good packets gives ₹31.1436…, displayed as ₹31.14.
-- Yield is 188 good packets against 200 expected, so the variance is (188 − 200) / 200 × 100 = −6%.
-- Oil actual usage is 10.5 L against a 10 L plan, so the variance is +5%.
-- Pouch variance is −3.0%, exactly at the tolerance boundary. Since the implementation flags only values with absolute variance greater than 3%, this is not flagged. Carton variance of −10% is flagged.
-- Ingredient valuation uses perpetual weighted average, not the latest purchase rate. For flour, (100 × ₹42 + 60 × ₹45) / 160 = ₹43.125/kg.
-- Retailer A's due is ₹7,875 − ₹4,000 = ₹3,875.
-- Distributor B's order exceeds available finished stock by 32 packets. Approval can be forced as a backorder, but dispatch remains blocked until stock is sufficient.
-- Retailer A is in Tamil Nadu, so the 5% GST is split into CGST and SGST. Distributor B is in Karnataka, so the invoice uses IGST.
-Verification status: these are the expected values encoded in the repository's test assertions. Run the command above and include the terminal output (including ALL BENCHMARK CHECKS PASSED) as evidence that the current checkout passes.
+</div>🔍 Explanation of benchmark differences
+<details>
+<summary><b>💰 Why is the production cost ₹31.14 per packet?</b></summary>The benchmark run records:
+- Material cost = ₹4,055
+- Labour cost = ₹1,200
+- Power cost = ₹600
+Total run cost:
+
+₹4,055 + ₹1,200 + ₹600 = ₹5,855
+
+Good output = 188 packets.
+
+₹5,855 / 188 = ₹31.1436...
+
+Rounded cost per good packet = ₹31.14.
+</details><details>
+<summary><b>📉 Why is yield variance −6%?</b></summary>
+Expected output = 200 packets.
+
+Actual good output = 188 packets.
+
+((188 − 200) / 200) × 100 = −6%
+
+The run produced 12 fewer good packets than expected.
+</details><details>
+<summary><b>🛢️ Why is cooking-oil variance +5%?</b></summary>
+Planned oil consumption = 10 L.
+
+Actual oil consumption = 10.5 L.
+
+((10.5 − 10) / 10) × 100 = +5%
+
+Actual consumption exceeded the planned quantity by 0.5 L.
+</details><details>
+<summary><b>📦 Why is pouch variance not flagged at −3%?</b></summary>
+The implementation flags a variance only when its absolute value is greater than 3%. A variance exactly equal to 3% is at the tolerance boundary, so it is not flagged. A carton variance of −10% is flagged.
+</details><details>
+<summary><b>🧮 Why is flour not valued at the latest purchase price?</b></summary>
+FactoryFlow uses moving weighted-average valuation. For example:
+
+(100 kg × ₹42 + 60 kg × ₹45) / 160 kg = ₹43.125/kg
+
+Therefore, the issue value reflects the weighted average of stock value and quantity, not only the latest receipt price.
+</details><details>
+<summary><b>🧾 Why are CGST and SGST applied?</b></summary>
+The benchmark customer is in Tamil Nadu, the factory's home state. The 5% GST is split equally into CGST (2.5%) and SGST (2.5%).
+
+For the Karnataka customer, the invoice uses IGST because the sale is inter-state.
+</details><details>
+<summary><b>🚚 Why is Distributor B short by 32 packets?</b></summary>
+The order quantity exceeds the available finished-goods stock by 32 packets. The order can be approved as a backorder, but dispatch is blocked until sufficient stock is available.
+</details>Benchmark status: These are the expected values asserted in tests/test_benchmark.py. Run the benchmark command below and retain its terminal output as execution evidence. Do not treat expected assertions as a successful run until the test passes.
+
+🧮 Business Logic
+1. Stock calculation
+Stock on hand is derived from the sum of ledger quantity movements:
+Closing Stock = Sum of all signed stock movements
+- Purchase receipt → positive movement
+- Material issue to production → negative movement
+- Production output → positive finished-goods movement
+- Customer dispatch → negative finished-goods movement
+- Credit-note reversal → reversal movement
+2. BOM planned consumption
+For each raw material:
+Planned Quantity = BOM Quantity per Batch × Number of Batches
+Actual material consumption is captured for the production run. Pouch usage is derived from good packets plus damaged packets.
+3. Material variance
+Variance (%) = ((Actual − Planned) / Planned) × 100
+A flag is raised when the absolute variance is greater than 3%.
+4. Yield variance
+Yield Variance (%) =
+((Good Output − Expected Output) / Expected Output) × 100
+5. Cost per good packet
+Run Cost = Material Issue Cost + Labour Cost + Power Cost
+
+Cost per Good Packet = Run Cost / Good Packets
+6. Inventory valuation
+FactoryFlow uses perpetual moving weighted-average valuation. The average cost is calculated from the current inventory value and quantity, together with the value and quantity of new receipts. Material issues use the current average cost.
+🧪 Run the Benchmark
+From the project folder:
+python tests/test_benchmark.py
+The benchmark starts the application against a temporary SQLite database, calls the HTTP API and checks expected end-to-end values.
+
+It is a functional workflow/regression benchmark, not a performance benchmark. It does not measure throughput, latency, concurrency or production-scale reliability.
+🧩 Section 6 Capability Mapping
+The repository contains implementation evidence for the capability areas below. The exact Section 6 tier names and numbering were not included in the repository materials used to prepare this README. The mapping is therefore by capability; align the labels and tier numbers with the assignment brief before final submission.
+Capability area	Implemented functionality
+🛒 Order-to-cash	Sales order creation, admin approval, invoice generation, dispatch, payment and outstanding balance
+🧾 Purchase-to-stock	Purchase receipts create positive stock-ledger movements
+🏭 BOM-based production	BOM planning, actual consumption, good/damaged output and production ledger postings
+📉 Variance and alerts	Yield and material variance calculations; flags above 3% tolerance
+💰 Costing	Material issue value plus labour and power overhead; cost per good packet
+🇮🇳 GST and documents	HSN/rate invoice lines, intra/inter-state tax split, invoice numbering and credit-note cancellation
+📊 Audit and reporting	Audit log and nine report endpoints
+📴 Offline workflow	Cached app shell/product/customer data and idempotent queued order submission
+🔐 Role-based access	Server-side endpoint authorization for defined roles
+
+
+⚠️ Assumptions and Known Gaps
 Assumptions
-- The demo models a single factory and uses Tamil Nadu as the home state for GST classification.
-- Item quantities are normalized to each item's configured base unit/factor; currency is stored in paise.
-- Each production run is for one finished product. Labour and power are assigned directly to that run.
-- Finished-goods overhead is absorbed into inventory as a value-only ledger movement (zero quantity).
-- Demo seed data and demo credentials are for evaluation, not production use.
-Known gaps and limitations
+- The demonstration represents one factory.
+- Tamil Nadu is treated as the factory's home state for GST classification.
+- Item quantities are normalized to configured base units.
+- Each production run is for one finished product.
+- Labour and power costs are assigned directly to the production run.
+- Finished-goods overhead is absorbed through a value-only ledger movement (zero quantity).
+- Seed data and demo credentials are intended only for evaluation.
+Known gaps
 - No batch/lot traceability or expiry-date management.
 - No GPS/geolocation workflow.
 - Supplier master data is free text rather than a normalized supplier entity.
 - No partial dispatch or general sales-return workflow; invoice cancellation/credit-note reversal is implemented.
 - Session tokens do not expire.
-- Password hashing is salted with a fixed application prefix plus SHA-256 and is explicitly demo-grade, not production-grade password storage.
-- SQLite is suitable for this demonstration but is not a substitute for a production multi-user database/service architecture.
-- The benchmark is functional and deterministic; it does not measure load, response time, concurrency capacity or production-scale reliability.
-Repository layout
+- Password hashing uses a fixed application prefix plus SHA-256 and is demo-grade, not production-grade.
+- SQLite is suitable for this demonstration, not a hardened multi-user production ERP.
+- The benchmark is functional and deterministic; it does not measure load, latency or concurrency capacity.
+📁 Project Structure
 factory_flow/
 └── murukku-ops/
     ├── server.py
@@ -121,4 +261,10 @@ factory_flow/
     │   └── test_benchmark.py
     ├── Dockerfile
     └── docker-compose.yml
-Adjust the layout snippet if additional files have been added since this README was prepared.
+<div align="center">🏭 FactoryFlow
+From Order to Audit — All in One Flow
+
+Built to connect orders, inventory, production, costing and audit in one workflow.
+
+🌐 Open Live Demo · 💻 View GitHub Repository
+</div>
